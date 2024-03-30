@@ -69,6 +69,20 @@ public class DeskReservationService : IDeskReservationService
         return completions;
     }
 
+    private static Seat? FindBestPossibleSeat(List<string> seatNamePriority, List<Seat> allSeats)
+    {
+        var availableSeats = allSeats
+            .Where(s => s.Active && s.Reservations.Count == 0)
+            .ToList();
+        
+        // Get name of available seat with the highest priority
+        var seatName = seatNamePriority
+            .FirstOrDefault(seatName => availableSeats.Exists(s => s.Name == seatName));
+        
+        // Return the seat
+        return availableSeats.FirstOrDefault(s => s.Name == seatName);
+    }
+
     private async Task<Result<CompletedReservation>> AttemptReservation(DateOnly date)
     {
         var locationsResult = await this.mydeskClient.GetLocations(date);
@@ -110,16 +124,10 @@ public class DeskReservationService : IDeskReservationService
         {
             return areasResult.Error!;
         }
-
-        var availableSeats = seatsResult
-            .Unwrap()
-            .Where(s => s.Active)
-            .ToList();
-
-        var seatName = this.deskReservationOptions.Value.SeatPriorityList
-            .FirstOrDefault(seatName => availableSeats.Exists(s => s.Name == seatName));
         
-        var seat = availableSeats.FirstOrDefault(s => s.Name == seatName);
+        var seat = FindBestPossibleSeat(
+            this.deskReservationOptions.Value.SeatPriorityList,
+            seatsResult.Unwrap());
         
         if (seat is null)
         {
