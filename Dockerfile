@@ -1,6 +1,14 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS base
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
 
-WORKDIR /app
+# Install Firefox and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    firefox-esr \
+    xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV Display=:99
+ENV MOZ_HEADLESS=1
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
@@ -24,35 +32,9 @@ FROM base AS final
 
 WORKDIR /app
 
-# Install the necessary dependencies for Selenium
-RUN apt-get update && apt-get install -y \
-    wget \
-    unzip \
-    libgdiplus \
-    libnss3-tools \
-    libx11-dev \
-    gconf-service \
-    libasound2 \
-    libatk1.0-0 \
-    libcairo2 \
-    libcups2 \
-    libfontconfig1 \
-    libgdk-pixbuf2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libpango-1.0-0 \
-    libxss1 \
-    fonts-liberation \
-    libappindicator1 \
-    libnss3 \
-    lsb-release \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && dpkg -i google-chrome-stable_current_amd64.deb; apt --fix-broken -y install
-
-RUN wget https://chromedriver.storage.googleapis.com/100.0.4896.20/chromedriver_linux64.zip && unzip chromedriver_linux64.zip && mv chromedriver /usr/bin/chromedriver
-
 COPY --from=publish /app/publish .
+
+# Start Xvfb
+RUN Xvfb :99 -screen 0 1024x768x24 &
 
 ENTRYPOINT ["dotnet", "./App.dll"]

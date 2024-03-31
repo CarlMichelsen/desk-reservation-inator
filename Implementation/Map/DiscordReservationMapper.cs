@@ -1,43 +1,78 @@
-﻿using Domain.Dto.Discord;
+﻿using System.Text;
+using Domain.Dto.Discord;
 using Domain.Model.DeskReservation;
 
 namespace Implementation.Map;
 
 public static class DiscordReservationMapper
 {
-    public static DiscordWebhookPayload Map(List<CompletedReservation> completedReservations)
+    public static DiscordWebhookPayload Map(List<CompletedReservation> completedReservations, ReservationConfiguration config)
     {
+        var fromStr = config.ReserveFromThisDateInclusive.ToString("dd-MMM-yyyy");
+        var toStr = config.LatestReservationDateInclusive.ToString("dd-MMM-yyyy");
+
+        string content;
+        if (completedReservations.Count == 0)
+        {
+            content = $"All reservations between(inclusive) {fromStr} and {toStr} have already been made";
+        }
+        else
+        {
+            var count = completedReservations.Count;
+            var resPlural = count > 1 ? "reservations" : "reservation";
+            var reservationList = MapCompletedReservationsToMarkupList(completedReservations);
+            content = $"Made {count} {resPlural} between(inclusive) {fromStr} and {toStr}.\n\n{reservationList}";
+        }
+
         return new DiscordWebhookPayload
         {
             Username = "DeskReservationLog",
-            Content = completedReservations.Count > 0
-                ? $"Completed {completedReservations.Count} reservations"
-                : "No reservation was made",
-            Embed = completedReservations.Count > 0
-                ? MapToEmbed(completedReservations)
-                : null,
+            Content = content,
         };
     }
 
-    public static DiscordEmbed MapToEmbed(List<CompletedReservation> completedReservations)
+    private static string MapCompletedReservationsToMarkupList(List<CompletedReservation> completedReservations)
     {
-        return new DiscordEmbed
-        {
-            Title = "Reservations",
-            Color = 123456,
-            Fields = completedReservations.Select(MapToField).ToList(),
-        };
-    }
+        var sortedReservations = completedReservations
+            .OrderBy(r => r.Location.Id)
+            .ThenBy(r => r.Area.Id)
+            .ThenBy(r => r.Seat.Id)
+            .ThenBy(r => r.Date)
+            .ToList();
 
-    public static DiscordEmbedField MapToField(CompletedReservation completedReservation)
-    {
-        var dateStr = completedReservation.Date.ToString("yyyy-mm-dd");
-        var desc = $"{completedReservation.Location.Name}\n{completedReservation.Area.Name}\n{completedReservation.Seat.Name}";
+        StringBuilder result = new StringBuilder();
+        ulong currentLocationId = 0;
+        ulong currentAreaId = 0;
+        ulong currentSeatId = 0;
 
-        return new DiscordEmbedField
+        foreach (var r in sortedReservations)
         {
-            Name = dateStr,
-            Value = desc,
-        };
+            if (r.Location.Id != currentLocationId)
+            {
+                currentLocationId = r.Location.Id;
+                result.AppendLine($"{r.Location.Name}");
+                currentAreaId = 0; // Reset area when location changes
+            }
+
+            if (r.Area.Id != currentAreaId)
+            {
+                currentAreaId = r.Area.Id;
+                result.AppendLine($"\t{r.Area.Name}");
+                currentSeatId = 0; // Reset seat when area changes
+            }
+
+            if (r.Seat.Id != currentSeatId)
+            {
+                currentSeatId = r.Seat.Id;
+                result.AppendLine($"\t\t{r.Seat.Name ?? "<unknown>"}");
+            }
+
+            var date = r.Date.ToString("dd-MMM-yyyy");
+            var allDayString = r.Request.AllDay ? "All day" : "Partial day";
+
+            result.AppendLine($"\t\t\t{date} -> {allDayString}");
+        }
+
+        return result.ToString();
     }
 }

@@ -50,6 +50,12 @@ public class SessionDataService : ISessionDataService
         var result = await browserOrchestrator.GetUserSessionData();
         if (result.IsSuccess)
         {
+            var sessionData = result.Unwrap();
+            if (sessionData.Secret is null)
+            {
+                return new Error("SessionDataService.InvalidSessionData");
+            }
+
             var jsonStr = JsonConvert.SerializeObject(result.Unwrap());
             await this.cacheService.Set(cacheKey, jsonStr, TimeSpan.FromHours(1));
         }

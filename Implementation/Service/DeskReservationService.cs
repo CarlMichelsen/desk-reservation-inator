@@ -27,9 +27,8 @@ public class DeskReservationService : IDeskReservationService
 
     public async Task<Result<List<CompletedReservation>>> ReserveAvailableDesks(ReservationConfiguration config)
     {
-        var from = DateOnly.FromDateTime(DateTime.Now.AddDays(-30));
-        var to = DateOnly.FromDateTime(DateTime.Now.AddDays(30));
-        var reservationResult = await this.mydeskClient.GetReservations(from, to);
+        var reservationResult = await this.mydeskClient
+            .GetReservations(config.ReserveFromThisDateInclusive, config.LatestReservationDateInclusive);
         
         if (reservationResult.IsError)
         {
@@ -40,9 +39,19 @@ public class DeskReservationService : IDeskReservationService
             reservationResult.Unwrap(),
             config);
 
-        this.logger.LogInformation(
-            "Attempting to reserve seat for the following dates {dates}",
-            string.Join(", ", datesToAttemptReservation.Select(d => d.ToString("dd-MMM-yyyy"))));
+        if (datesToAttemptReservation.Count > 0)
+        {
+            this.logger.LogInformation(
+                "Attempting to reserve seat for the following dates {dates}",
+                string.Join(", ", datesToAttemptReservation.Select(d => d.ToString("dd-MMM-yyyy"))));
+        }
+        else
+        {
+            this.logger.LogInformation(
+                "All reservations between(inclusive) {from} and {to} have been made",
+                config.ReserveFromThisDateInclusive.ToString("dd-MMM-yyyy"),
+                config.LatestReservationDateInclusive.ToString("dd-MMM-yyyy"));
+        }
 
         var completions = new List<CompletedReservation>();
         foreach (var date in datesToAttemptReservation)
@@ -158,6 +167,7 @@ public class DeskReservationService : IDeskReservationService
         return new CompletedReservation
         {
             Date = date,
+            Request = createReservation,
             Location = location,
             Area = area,
             Seat = seat,
