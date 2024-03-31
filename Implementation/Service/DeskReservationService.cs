@@ -27,9 +27,8 @@ public class DeskReservationService : IDeskReservationService
 
     public async Task<Result<List<CompletedReservation>>> ReserveAvailableDesks(ReservationConfiguration config)
     {
-        var from = DateOnly.FromDateTime(DateTime.Now.AddDays(-30));
-        var to = DateOnly.FromDateTime(DateTime.Now.AddDays(30));
-        var reservationResult = await this.mydeskClient.GetReservations(from, to);
+        var reservationResult = await this.mydeskClient
+            .GetReservations(config.ReserveFromThisDateInclusive, config.LatestReservationDateInclusive);
         
         if (reservationResult.IsError)
         {

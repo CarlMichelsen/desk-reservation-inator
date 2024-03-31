@@ -17,8 +17,14 @@ public class BrowserOrchestrator
         DeskReservationOptions deskReservationOptions)
     {
         var options = new ChromeOptions();
-        options.AddArgument("--log-level=3");
+        // options.AddArgument("--log-level=3");
         options.AddArguments("--headless"); // Comment out this line to debug the browser
+
+        var chromeOptionsEnvVar = Environment.GetEnvironmentVariable("CHROME_OPTIONS");
+        if (chromeOptionsEnvVar is not null)
+        {
+            options.AddArguments(chromeOptionsEnvVar);
+        }
         
         this.driver = new ChromeDriver(options);
         this.deskReservationOptions = deskReservationOptions;

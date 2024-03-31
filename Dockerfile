@@ -1,6 +1,27 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS base
+FROM debian:buster-slim AS base
 
-WORKDIR /app
+# Install necessary dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       wget \
+       gnupg \
+       apt-transport-https \
+       ca-certificates \
+       tar \
+       chromium
+
+# Setup Microsoft package feed
+RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb
+
+# Install ASP.NET Core Runtime 8
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dotnet-runtime-8.0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set Chrome options for running in headless mode
+ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-setuid-sandbox"
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
@@ -23,35 +44,6 @@ RUN dotnet publish "./App" -c Release --output /app/publish
 FROM base AS final
 
 WORKDIR /app
-
-# Install the necessary dependencies for Selenium
-RUN apt-get update && apt-get install -y \
-    wget \
-    unzip \
-    libgdiplus \
-    libnss3-tools \
-    libx11-dev \
-    gconf-service \
-    libasound2 \
-    libatk1.0-0 \
-    libcairo2 \
-    libcups2 \
-    libfontconfig1 \
-    libgdk-pixbuf2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libpango-1.0-0 \
-    libxss1 \
-    fonts-liberation \
-    libappindicator1 \
-    libnss3 \
-    lsb-release \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && dpkg -i google-chrome-stable_current_amd64.deb; apt --fix-broken -y install
-
-RUN wget https://chromedriver.storage.googleapis.com/100.0.4896.20/chromedriver_linux64.zip && unzip chromedriver_linux64.zip && mv chromedriver /usr/bin/chromedriver
 
 COPY --from=publish /app/publish .
 
