@@ -20,6 +20,8 @@ public class BrowserOrchestrator
 
         var profile = new FirefoxProfile();
         profile.SetPreference("general.useragent.override", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
+        profile.SetPreference("layers.acceleration.disabled", true);
+        profile.SetPreference("gfx.direct2d.disabled", true);
 
         var options = new FirefoxOptions
         {
