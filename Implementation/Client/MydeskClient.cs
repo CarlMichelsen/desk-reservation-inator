@@ -189,6 +189,6 @@ public class MydeskClient : IMydeskClient
     {
         var sessionDataResult = await this.sessionDataService.GetSessionData();
         var sessionData = sessionDataResult.Unwrap();
-        return new AuthenticationHeaderValue(sessionData.TokenType, sessionData.Secret);
+        return new AuthenticationHeaderValue(sessionData.TokenType ?? "Bearer", sessionData.Secret);
     }
 }

@@ -3,14 +3,14 @@ using Domain.Configuration;
 using Domain.Dto.Mydesk;
 using Newtonsoft.Json;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Support.UI;
 
 namespace Implementation.Browser;
 
 public class BrowserOrchestrator
 {
-    private readonly ChromeDriver driver;
+    private readonly FirefoxDriver driver;
     private readonly DeskReservationOptions deskReservationOptions;
 
     public BrowserOrchestrator(
@@ -18,8 +18,14 @@ public class BrowserOrchestrator
     {
         this.deskReservationOptions = deskReservationOptions;
 
-        var options = new ChromeOptions();
-        // options.AddArguments("--headless"); // Comment out this line to debug the browser
+        var profile = new FirefoxProfile();
+        profile.SetPreference("general.useragent.override", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36");
+
+        var options = new FirefoxOptions
+        {
+            Profile = profile,
+        };
+        options.AddArguments("--headless"); // Comment out this line to debug the browser
 
         // Enable logging
         options.SetLoggingPreference(LogType.Browser, LogLevel.All);
@@ -32,14 +38,16 @@ public class BrowserOrchestrator
             options.AddArguments(chromeOptionsEnvVar);
         }
         
-        this.driver = new ChromeDriver(options);
+        this.driver = new FirefoxDriver(options);
     }
 
     public async Task<Result<SessionData>> GetUserSessionData()
     {
         try
         {
-            this.driver.Navigate().GoToUrl(this.deskReservationOptions.MydeskUrl);
+            this.driver
+                .Navigate()
+                .GoToUrl(this.deskReservationOptions.MydeskUrl);
             return await this.Login();
         }
         catch (Exception e)
@@ -127,8 +135,14 @@ public class BrowserOrchestrator
         await Task.Delay(TimeSpan.FromSeconds(9));
 
         var js = this.driver as IJavaScriptExecutor;
-        string sessionStorage = (string)js.ExecuteScript(
-            "let items = {}; for (let i = 0; i < sessionStorage.length; i++) {let key = sessionStorage.key(i); items[key] = sessionStorage.getItem(key); } return JSON.stringify(items);");
+        var sessionStorage = (string)js.ExecuteScript(@"let result = {};
+            for(let i=0; i<sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                result[key] = value;
+            }
+            return JSON.stringify(result);");
+
         var keyValuePairs = JsonConvert.DeserializeObject<Dictionary<string, string>>(sessionStorage);
 
         if (keyValuePairs is null)
@@ -146,14 +160,39 @@ public class BrowserOrchestrator
         foreach (var sessionStorageItem in sessionStorage.Values)
         {
             var attempt = JsonConvert.DeserializeObject<SessionData>(sessionStorageItem);
-            if (attempt is not null)
+            if (this.ValidateSessionData(attempt))
             {
-                return attempt;
+                return attempt!;
             }
         }
 
         return new Error(
             "BrowserOrchestrator.GetSessionData",
             "Failed to find sessionData");
+    }
+
+    private bool ValidateSessionData(SessionData? sessionData)
+    {
+        if (sessionData is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(sessionData.Secret))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(sessionData.CredentialType))
+        {
+            return false;
+        }
+
+        if (sessionData.CredentialType != "AccessToken")
+        {
+            return false;
+        }
+
+        return true;
     }
 }

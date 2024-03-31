@@ -21,7 +21,7 @@ public static class DiscordReservationMapper
             var count = completedReservations.Count;
             var resPlural = count > 1 ? "reservations" : "reservation";
             var reservationList = MapCompletedReservationsToMarkupList(completedReservations);
-            content = $"Made {count} {resPlural} between(inclusive) {fromStr} and {toStr}.\n{reservationList}";
+            content = $"Made {count} {resPlural} between(inclusive) {fromStr} and {toStr}.\n\n{reservationList}";
         }
 
         return new DiscordWebhookPayload
@@ -29,13 +29,6 @@ public static class DiscordReservationMapper
             Username = "DeskReservationLog",
             Content = content,
         };
-    }
-
-    private static string LineTrim(this string originalString)
-    {
-        var lines = originalString.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-        var trimmedLines = lines.Select(line => line.Trim()).ToArray();
-        return string.Join(Environment.NewLine, trimmedLines);
     }
 
     private static string MapCompletedReservationsToMarkupList(List<CompletedReservation> completedReservations)
@@ -57,27 +50,27 @@ public static class DiscordReservationMapper
             if (r.Location.Id != currentLocationId)
             {
                 currentLocationId = r.Location.Id;
-                result.AppendLine($"-{r.Location.Name}");
+                result.AppendLine($"{r.Location.Name}");
                 currentAreaId = 0; // Reset area when location changes
             }
 
             if (r.Area.Id != currentAreaId)
             {
                 currentAreaId = r.Area.Id;
-                result.AppendLine($"\t-{r.Area.Name}");
+                result.AppendLine($"\t{r.Area.Name}");
                 currentSeatId = 0; // Reset seat when area changes
             }
 
             if (r.Seat.Id != currentSeatId)
             {
                 currentSeatId = r.Seat.Id;
-                result.AppendLine($"\t\t-{r.Seat.Name ?? "<unknown>"}");
+                result.AppendLine($"\t\t{r.Seat.Name ?? "<unknown>"}");
             }
 
             var date = r.Date.ToString("dd-MMM-yyyy");
             var allDayString = r.Request.AllDay ? "All day" : "Partial day";
 
-            result.AppendLine($"\t\t\t-{date} -> {allDayString}");
+            result.AppendLine($"\t\t\t{date} -> {allDayString}");
         }
 
         return result.ToString();

@@ -1,5 +1,6 @@
 ﻿using Domain.Abstractions;
 using Domain.Dto.Discord;
+using Domain.Exception;
 using Domain.Model.DeskReservation;
 using Implementation.Map;
 using Interface.Handler;
@@ -36,11 +37,22 @@ public class DeskReservationHandler : IDeskReservationHandler
             await this.LogResult(result, config);
             return result;
         }
+        catch (UnhandledResultErrorException e)
+        {
+            await this.LogResult(e.Error!);
+            return e.Error!;
+        }
         catch (Exception e)
         {
+            var msg = e.Message;
+            if (e.InnerException is not null)
+            {
+                msg += "\n\n" + e.InnerException.Message;
+            }
+
             Result<List<CompletedReservation>> err = new Error(
                 "DeskReservationHandler.Exception",
-                e.Message);
+                msg);
 
             await this.LogResult(err);
             return err;
