@@ -8,7 +8,34 @@ RUN apt-get update \
        apt-transport-https \
        ca-certificates \
        tar \
-       chromium
+       chromium \
+       libglib2.0-0 \
+       libnss3 \
+       libx11-6 \
+       libx11-xcb1 \
+       libxcb1 \
+       libxcomposite1 \
+       libxcursor1 \
+       libxdamage1 \
+       libxext6 \
+       libxfixes3 \
+       libxi6 \
+       libxrandr2 \
+       libxrender1 \
+       libxss1 \
+       libxtst6 \
+       fonts-liberation \
+       libasound2 \
+       libatk-bridge2.0-0 \
+       libatk1.0-0 \
+       libatspi2.0-0 \
+       libcups2 \
+       libdbus-1-3 \
+       libdrm2 \
+       libegl1 \
+       libgbm1 \
+       libgtk-3-0 \
+       libpango-1.0-0
 
 # Setup Microsoft package feed
 RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
@@ -21,7 +48,13 @@ RUN apt-get update \
     && apt-get clean
 
 # Set Chrome options for running in headless mode
-ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-setuid-sandbox"
+ENV CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-setuid-sandbox --disable-gpu"
+
+# Run Chrome as root user
+USER root
+
+# Set permissions for Chrome executable
+RUN chmod +x /usr/bin/chromium
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 

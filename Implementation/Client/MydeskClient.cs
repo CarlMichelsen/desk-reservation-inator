@@ -6,6 +6,7 @@ using Domain.Configuration;
 using Domain.Dto.Mydesk;
 using Interface.Client;
 using Interface.Service;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
@@ -19,15 +20,18 @@ public class MydeskClient : IMydeskClient
     private const string AreasPath = "/api/Areas";
     private const string ValidatePath = "/api/Reservations";
 
+    private readonly ILogger<MydeskClient> logger;
     private readonly HttpClient httpClient;
     private readonly ISessionDataService sessionDataService;
     private readonly IOptions<DeskReservationOptions> deskReservationOptions;
 
     public MydeskClient(
+        ILogger<MydeskClient> logger,
         HttpClient httpClient,
         ISessionDataService sessionDataService,
         IOptions<DeskReservationOptions> deskReservationOptions)
     {
+        this.logger = logger;
         this.httpClient = httpClient;
         this.sessionDataService = sessionDataService;
         this.deskReservationOptions = deskReservationOptions;
@@ -37,6 +41,7 @@ public class MydeskClient : IMydeskClient
         DateOnly from,
         DateOnly to)
     {
+        this.logger.LogInformation("GetReservations\nfrom: {from}\nto: {to}", from, to);
         this.httpClient.DefaultRequestHeaders.Authorization = await this.GetAuthenticationHeaderValue();
         
         var email = this.deskReservationOptions.Value.Email;
@@ -63,6 +68,7 @@ public class MydeskClient : IMydeskClient
 
     public async Task<Result<List<Location>>> GetLocations(DateOnly date)
     {
+        this.logger.LogInformation("GetLocations\ndate: {date}", date);
         this.httpClient.DefaultRequestHeaders.Authorization = await this.GetAuthenticationHeaderValue();
 
         var url = $"{Url}{LocationsPath}?date={date:dd-MMM-yyyy}";
@@ -91,6 +97,12 @@ public class MydeskClient : IMydeskClient
         DateOnly startDate,
         DateOnly endDate)
     {
+        this.logger.LogInformation(
+            "GetAreas\nlocationId: {locationId}\nstartDate: {startDate}\nendDate: {endDate}",
+            locationId,
+            startDate,
+            endDate);
+        
         this.httpClient.DefaultRequestHeaders.Authorization = await this.GetAuthenticationHeaderValue();
 
         var url = $"{Url}{AreasPath}?endDate={endDate:dd-MMM-yyyy}&locationId={locationId}&startDate={startDate:dd-MMM-yyyy}";
@@ -118,6 +130,11 @@ public class MydeskClient : IMydeskClient
         ulong areaId,
         DateOnly date)
     {
+        this.logger.LogInformation(
+            "GetSeats\nareaId: {areaId}\ndate: {date}",
+            areaId,
+            date);
+        
         this.httpClient.DefaultRequestHeaders.Authorization = await this.GetAuthenticationHeaderValue();
 
         var dateStr = date.ToString("yyyy-MM-dd");
@@ -145,6 +162,9 @@ public class MydeskClient : IMydeskClient
     public async Task<Result<bool>> CreateReservation(
         CreateReservationPayload createReservationPayload)
     {
+        this.logger.LogInformation(
+            "CreateReservation\amount: {amount}",
+            createReservationPayload.Reservations.Count);
         this.httpClient.DefaultRequestHeaders.Authorization = await this.GetAuthenticationHeaderValue();
 
         var url = $"{Url}{ValidatePath}";

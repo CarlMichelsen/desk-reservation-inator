@@ -24,23 +24,6 @@ public class ReservationTask : BackgroundService
         {
             var deskReservationHandler = scope.ServiceProvider.GetRequiredService<IDeskReservationHandler>();
             var reservationResult = await deskReservationHandler.ReserveAvaliableDeskSpots();
-
-            DiscordWebhookPayload payload;
-            if (reservationResult.IsSuccess)
-            {
-                payload = DiscordReservationMapper.Map(reservationResult.Unwrap());
-            }
-            else
-            {
-                payload = new DiscordWebhookPayload
-                {
-                    Username = "DeskReservationLog",
-                    Content = $"{reservationResult.Error!.Code}\n{reservationResult.Error!.Description}",
-                };
-            }
-
-            var discordWebhookService = scope.ServiceProvider.GetRequiredService<IDiscordWebhookService>();
-            await discordWebhookService.LogMessage(payload);
         }
 
         this.hostApplicationLifetime.StopApplication();

@@ -16,9 +16,15 @@ public class BrowserOrchestrator
     public BrowserOrchestrator(
         DeskReservationOptions deskReservationOptions)
     {
+        this.deskReservationOptions = deskReservationOptions;
+
         var options = new ChromeOptions();
-        // options.AddArgument("--log-level=3");
-        options.AddArguments("--headless"); // Comment out this line to debug the browser
+        // options.AddArguments("--headless"); // Comment out this line to debug the browser
+
+        // Enable logging
+        options.SetLoggingPreference(LogType.Browser, LogLevel.All);
+        options.SetLoggingPreference(LogType.Driver, LogLevel.All);
+        options.SetLoggingPreference(LogType.Performance, LogLevel.All);
 
         var chromeOptionsEnvVar = Environment.GetEnvironmentVariable("CHROME_OPTIONS");
         if (chromeOptionsEnvVar is not null)
@@ -27,7 +33,6 @@ public class BrowserOrchestrator
         }
         
         this.driver = new ChromeDriver(options);
-        this.deskReservationOptions = deskReservationOptions;
     }
 
     public async Task<Result<SessionData>> GetUserSessionData()
@@ -45,8 +50,7 @@ public class BrowserOrchestrator
         }
         finally
         {
-            this.driver.Close();
-            this.driver.Dispose();
+            this.driver.Quit();
         }
     }
 
