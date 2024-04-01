@@ -40,7 +40,8 @@ public class BrowserOrchestrator
             options.AddArguments(chromeOptionsEnvVar);
         }
         
-        this.driver = new FirefoxDriver(options);
+        FirefoxDriverService service = FirefoxDriverService.CreateDefaultService();
+        this.driver = new FirefoxDriver(service, options, TimeSpan.FromMinutes(2));
     }
 
     public async Task<Result<SessionData>> GetUserSessionData()
