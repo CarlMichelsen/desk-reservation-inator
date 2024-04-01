@@ -27,7 +27,7 @@ public class DeskReservationHandler : IDeskReservationHandler
         var config = new ReservationConfiguration
         {
             ReserveFromThisDateInclusive = startDate,
-            LatestReservationDateInclusive = startDate.AddDays(15),
+            LatestReservationDateInclusive = startDate.AddDays(18),
             IncludeWeekends = false,
         };
 
